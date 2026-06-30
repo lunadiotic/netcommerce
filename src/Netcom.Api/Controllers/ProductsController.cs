@@ -7,11 +7,11 @@ namespace Netcom.Api.Controllers;
 
 [Route("api/[controller]")]
 [ApiController]
-public class ProductController : ControllerBase
+public class ProductsController : ControllerBase
 {
     private readonly AppDbContext _context;
 
-    public ProductController(AppDbContext context)
+    public ProductsController(AppDbContext context)
     {
         _context = context;
     }
