@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Netcom.Api.Data;
 using Netcom.Api.Models;
-using Microsoft.EntityFrameworkCore;
+using Netcom.Api.Services;
 
 namespace Netcom.Api.Controllers;
 
@@ -9,25 +9,26 @@ namespace Netcom.Api.Controllers;
 [ApiController]
 public class ProductsController : ControllerBase
 {
-    private readonly AppDbContext _context;
+    private readonly IProductService _productService;
 
-    public ProductsController(AppDbContext context)
+    public ProductsController(IProductService productService)
     {
-        _context = context;
+        _productService = productService;
     }
 
     // GET: api/Product
     [HttpGet]
     public async Task<ActionResult<IEnumerable<Product>>> GetProducts()
     {
-        return await _context.Products.ToListAsync();
+        var products = await _productService.GetAllProductsAsync();
+        return Ok(products);
     }
 
     // GET: api/Product/5
     [HttpGet("{id}")]
     public async Task<ActionResult<Product>> GetProduct(int id)
     {
-        var product = await _context.Products.FindAsync(id);
+        var product = await _productService.GetProductByIdAsync(id);
 
         if (product == null)
         {
@@ -41,10 +42,8 @@ public class ProductsController : ControllerBase
     [HttpPost]
     public async Task<ActionResult<Product>> CreateProduct(Product product)
     {
-        _context.Products.Add(product);
-        await _context.SaveChangesAsync();
-
-        return CreatedAtAction(nameof(GetProduct), new { id = product.Id }, product);
+        var createdProduct = await _productService.CreateProductAsync(product);
+        return CreatedAtAction(nameof(GetProduct), new { id = createdProduct.Id }, createdProduct);
     }
 
     // PUT: api/Product/5
@@ -56,22 +55,11 @@ public class ProductsController : ControllerBase
             return BadRequest();
         }
 
-        _context.Entry(product).State = EntityState.Modified;
+        var isUpdated = await _productService.UpdateProductAsync(id, product);
 
-        try
+        if (!isUpdated)
         {
-            await _context.SaveChangesAsync();
-        }
-        catch (DbUpdateConcurrencyException)
-        {
-            if (!ProductExists(id))
-            {
-                return NotFound();
-            }
-            else
-            {
-                throw;
-            }
+            return NotFound();
         }
 
         return NoContent();
@@ -81,20 +69,13 @@ public class ProductsController : ControllerBase
     [HttpDelete("{id}")]
     public async Task<IActionResult> DeleteProduct(int id)
     {
-        var product = await _context.Products.FindAsync(id);
-        if (product == null)
+        var isDeleted = await _productService.DeleteProductAsync(id);
+
+        if (!isDeleted)
         {
             return NotFound();
         }
 
-        _context.Products.Remove(product);
-        await _context.SaveChangesAsync();
-
         return NoContent();
-    }
-
-    private bool ProductExists(int id)
-    {
-        return _context.Products.Any(e => e.Id == id);
     }
 }

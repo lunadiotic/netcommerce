@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Netcom.Api.Controllers;
 using Netcom.Api.Data;
 using Netcom.Api.Models;
+using Netcom.Api.Services;
 using Xunit;
 
 namespace Netcom.Api.Tests;
@@ -22,23 +23,25 @@ public class ProductsControllerTests
     [Fact]
     public async Task GetProducts_ShouldReturnAllProducts_WhenProductsExist()
     {
-        // 1. Arrange (Persiapan Data)
+        // 1. Arrange
         using var context = GetInMemoryDbContext();
-        context.Products.AddRange(new List<Product>
-        {
-            new Product { Id = 1, Name = "Laptop", Price = 15000000, Stock = 10 },
-            new Product { Id = 2, Name = "Mouse", Price = 300000, Stock = 50 }
-        });
+        context.Products.AddRange(
+            new Product { Name = "Laptop", Price = 15000000, Stock = 10 },
+            new Product { Name = "Mouse", Price = 200000, Stock = 50 }
+        );
         await context.SaveChangesAsync();
 
-        var controller = new ProductsController(context);
+        var productService = new ProductService(context);
+        var controller = new ProductsController(productService);
 
-        // 2. Act (Eksekusi Method)
+        // 2. Act
         var result = await controller.GetProducts();
 
-        // 3. Assert (Verifikasi Hasil)
+        // 3. Assert
         var actionResult = Assert.IsType<ActionResult<IEnumerable<Product>>>(result);
-        var products = Assert.IsAssignableFrom<IEnumerable<Product>>(actionResult.Value);
+        var okResult = Assert.IsType<OkObjectResult>(actionResult.Result);
+        var products = Assert.IsAssignableFrom<IEnumerable<Product>>(okResult.Value);
+
         Assert.Equal(2, products.Count());
     }
 
@@ -47,7 +50,8 @@ public class ProductsControllerTests
     {
         // 1. Arrange
         using var context = GetInMemoryDbContext();
-        var controller = new ProductsController(context);
+        var productService = new ProductService(context);
+        var controller = new ProductsController(productService);
 
         // 2. Act
         var result = await controller.GetProduct(999); // ID yang tidak ada
@@ -61,7 +65,8 @@ public class ProductsControllerTests
     {
         // 1. Arrange
         using var context = GetInMemoryDbContext();
-        var controller = new ProductsController(context);
+        var productService = new ProductService(context);
+        var controller = new ProductsController(productService);
         var newProduct = new Product { Name = "Keyboard Mechanical", Price = 800000, Stock = 15 };
 
         // 2. Act
